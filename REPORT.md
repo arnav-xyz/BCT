@@ -142,3 +142,4 @@ The **MindChain** project successfully demonstrates the application of blockchai
 * **Soulbound Identity Tokens (SBTs):** Issue non-transferable verification credentials for certified psychiatrists and therapists.
 * **Automated Smart Contract Micro-Incentives:** Reward patients with wellness tokens for maintaining consistent mindfulness habits.
 * **IoT & Wearable Integration:** Automatically record sleep duration and heart-rate variability (HRV) from smartwatches into verified check-ins.
+

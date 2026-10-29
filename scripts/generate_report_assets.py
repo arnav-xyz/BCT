@@ -211,3 +211,4 @@ if __name__ == "__main__":
     generate_architecture_diagram()
     generate_terminal_output()
     generate_gas_chart()
+
