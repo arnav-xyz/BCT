@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindChain - Decentralized Mental Health & Mood Tracker</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- External Libraries (Ethers.js, Chart.js, CryptoJS) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+</head>
+<body>
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+        <div class="header-container">
+            <div class="brand">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-brain"></i>
+                </div>
+                <div>
+                    <h1 class="brand-title">MindChain</h1>
+                    <p class="brand-subtitle">Privacy-Preserving Mental Health Ledger</p>
+                </div>
+            </div>
+
+            <div class="header-controls">
+                <!-- Environment / Mode Toggle -->
+                <div class="mode-badge" id="modeBadge">
+                    <span class="status-dot online"></span>
+                    <span id="modeText">Connecting...</span>
+                </div>
+
+                <!-- Wallet info button -->
+                <div class="wallet-bar">
+                    <button id="connectWalletBtn" class="btn-wallet">
+                        <i class="fa-solid fa-wallet"></i>
+                        <span id="walletAddressText">Connect Wallet</span>
+                    </button>
+                    <!-- Role Switcher Dropdown (Useful for quick testing) -->
+                    <select id="roleSwitcher" class="role-select" title="Switch active simulated or connected persona">
+                        <option value="patient">Role: Patient</option>
+                        <option value="therapist">Role: Therapist</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        
+        <!-- System Alert / Banner (Crisis or Notice) -->
+        <div id="crisisBanner" class="crisis-banner hidden">
+            <div class="crisis-content">
+                <i class="fa-solid fa-triangle-exclamation pulse-anim"></i>
+                <div>
+                    <strong>Distress Alert Detected:</strong> Your recent check-in indicates severe distress or panic.
+                    Support is available 24/7. Call or text <a href="tel:988"><strong>988</strong></a> for immediate confidential help.
+                </div>
+            </div>
+            <button class="btn-close-banner" onclick="dismissCrisisBanner()">&times;</button>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-tab="tab-checkin">
+                <i class="fa-solid fa-pen-to-square"></i> Daily Check-in
+            </button>
+            <button class="nav-tab" data-tab="tab-analytics">
+                <i class="fa-solid fa-chart-line"></i> My Wellness Timeline
+            </button>
+            <button class="nav-tab" data-tab="tab-consent">
+                <i class="fa-solid fa-shield-halved"></i> Therapist Sharing
+            </button>
+            <button class="nav-tab" data-tab="tab-therapist">
+                <i class="fa-solid fa-user-doctor"></i> Clinical Portal
+            </button>
+            <button class="nav-tab" data-tab="tab-calm">
+                <i class="fa-solid fa-wind"></i> Calm Zone (4-7-8)
+            </button>
+        </nav>
+
+        <!-- TAB 1: DAILY CHECK-IN -->
+        <section id="tab-checkin" class="tab-pane active">
+            <div class="pane-grid">
+                <!-- Check-in Form Card -->
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <h2><i class="fa-regular fa-calendar-check"></i> Log Mental Wellness Check-in</h2>
+                        <span class="badge badge-teal"><i class="fa-solid fa-lock"></i> Client-Side Encrypted</span>
+                    </div>
+
+                    <form id="checkinForm" onsubmit="handleCheckinSubmit(event)">
+                        <!-- Mood Slider -->
+                        <div class="form-group">
+                            <div class="slider-header">
+                                <label for="moodSlider"><strong>Mood Rating:</strong> How are you feeling right now?</label>
+                                <span class="score-display" id="moodValueDisplay">
+                                    <span class="emoji" id="moodEmoji">🙂</span>
+                                    <span class="number" id="moodNumber">7</span> / 10
+                                </span>
+                            </div>
+                            <input type="range" id="moodSlider" min="1" max="10" value="7" class="custom-slider mood-range" oninput="updateMoodDisplay(this.value)">
+                            <div class="slider-labels">
+                                <span>1 (Severe Distress)</span>
+                                <span>5 (Neutral)</span>
+                                <span>10 (Optimal / Joyful)</span>
+                            </div>
+                        </div>
+
+                        <!-- Anxiety Slider -->
+                        <div class="form-group">
+                            <div class="slider-header">
+                                <label for="anxietySlider"><strong>Anxiety Level:</strong> How calm or overwhelmed do you feel?</label>
+                                <span class="score-display" id="anxietyValueDisplay">
+                                    <span class="number" id="anxietyNumber">3</span> / 10
+                                </span>
+                            </div>
+                            <input type="range" id="anxietySlider" min="1" max="10" value="3" class="custom-slider anxiety-range" oninput="updateAnxietyDisplay(this.value)">
+                            <div class="slider-labels">
+                                <span>1 (Completely Calm)</span>
+                                <span>5 (Moderate Worry)</span>
+                                <span>10 (Panic / Severe)</span>
+                            </div>
+                        </div>
+
+                        <!-- Sleep Hours & Activity Tag (Row) -->
+                        <div class="form-row">
+                            <div class="form-group col-half">
+                                <label for="sleepInput"><strong><i class="fa-solid fa-bed"></i> Sleep Duration:</strong></label>
+                                <div class="input-with-unit">
+                                    <input type="number" id="sleepInput" min="0" max="24" step="1" value="7" required class="form-control">
+                                    <span class="unit">hours</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group col-half">
+                                <label for="activityTag"><strong><i class="fa-solid fa-tag"></i> Primary Context:</strong></label>
+                                <select id="activityTag" class="form-control">
+                                    <option value="General Check-in">General Check-in</option>
+                                    <option value="Work / Career Stress">Work / Career Stress</option>
+                                    <option value="Meditation & Mindfulness">Meditation & Mindfulness</option>
+                                    <option value="Physical Exercise">Physical Exercise</option>
+                                    <option value="Therapy Session">Therapy Session</option>
+                                    <option value="Social & Family">Social & Family</option>
+                                    <option value="Insomnia / Sleep Issues">Insomnia / Sleep Issues</option>
+                                    <option value="Panic Attack / Crisis">Panic Attack / Crisis</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Encrypted Journal Entry -->
+                        <div class="form-group">
+                            <div class="flex-between">
+                                <label for="journalNote"><strong><i class="fa-solid fa-book-journal-whills"></i> Confidential Journal Reflection:</strong></label>
+                                <span class="badge badge-purple" title="Encrypted using AES-256 before blockchain submission">
+                                    <i class="fa-solid fa-key"></i> Zero-Knowledge Client Encryption
+                                </span>
+                            </div>
+                            <textarea id="journalNote" rows="3" class="form-control" placeholder="Write your private thoughts, triggers, or gratitude reflections here..."></textarea>
+                            <small class="helper-text">Your note will be encrypted using your personal secret key. The cleartext is never sent to the blockchain or any server.</small>
+                        </div>
+
+                        <!-- Secret Passphrase for AES -->
+                        <div class="form-group">
+                            <label for="encryptionKey"><strong>Personal Encryption Passphrase:</strong></label>
+                            <div class="input-with-icon">
+                                <i class="fa-solid fa-fingerprint icon-prefix"></i>
+                                <input type="password" id="encryptionKey" class="form-control" value="mindchain-safe-key-123" placeholder="Enter passphrase to encrypt your note">
+                                <button type="button" class="btn-toggle-eye" onclick="togglePassphraseVisibility()">
+                                    <i class="fa-regular fa-eye" id="eyeIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="form-actions">
+                            <button type="submit" id="submitCheckinBtn" class="btn btn-primary btn-large">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                                <span>Commit Entry to Blockchain</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Info Sidebar -->
+                <div class="sidebar-column">
+                    <div class="card card-info">
+                        <h3><i class="fa-solid fa-shield-cat"></i> Why Blockchain for Mental Health?</h3>
+                        <ul class="benefit-list">
+                            <li>
+                                <strong>Pseudonymous Identity:</strong> No real names, emails, or phone numbers. Only your cryptographic wallet address.
+                            </li>
+                            <li>
+                                <strong>Tamper-Proof History:</strong> Daily mood logs have cryptographic timestamps that can't be falsified or altered retroactively.
+                            </li>
+                            <li>
+                                <strong>True Data Sovereignty:</strong> You hold the keys. Centralized hospitals or insurance companies cannot mine or sell your data.
+                            </li>
+                            <li>
+                                <strong>Selective Therapist Access:</strong> Grant and revoke read permission to clinical professionals dynamically on-chain.
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="card card-contract">
+                        <h3><i class="fa-solid fa-network-wired"></i> Smart Contract Status</h3>
+                        <div class="contract-meta">
+                            <div><strong>Contract:</strong> <span class="mono" id="contractAddressDisplay">0x...</span></div>
+                            <div><strong>Network:</strong> <span id="networkNameDisplay">Hardhat (31337)</span></div>
+                            <div><strong>Your Entries:</strong> <span class="badge badge-teal" id="userEntryCountBadge">0 logged</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: WELLNESS TIMELINE & ANALYTICS -->
+        <section id="tab-analytics" class="tab-pane">
+            <!-- Stat Counters -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-icon icon-teal"><i class="fa-solid fa-clipboard-check"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statTotalCheckins">0</span>
+                        <span class="stat-label">Total On-Chain Logs</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon icon-blue"><i class="fa-regular fa-face-smile"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statAvgMood">-</span>
+                        <span class="stat-label">Average Mood (1-10)</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon icon-purple"><i class="fa-solid fa-heart-pulse"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statAvgAnxiety">-</span>
+                        <span class="stat-label">Average Anxiety (1-10)</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon icon-amber"><i class="fa-solid fa-moon"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statAvgSleep">-</span>
+                        <span class="stat-label">Avg Sleep (hrs)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Card -->
+            <div class="card card-chart">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-chart-area"></i> Mood & Anxiety Progression</h2>
+                    <span class="badge badge-blue">Cryptographically Verified Timeline</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="wellnessChart" height="110"></canvas>
+                </div>
+            </div>
+
+            <!-- Historical Entries List -->
+            <div class="card card-entries">
+                <div class="card-header flex-between">
+                    <h2><i class="fa-solid fa-clock-rotate-left"></i> Verified Mood Logs</h2>
+                    <div class="entries-tools">
+                        <button class="btn btn-secondary btn-sm" onclick="refreshEntries()">
+                            <i class="fa-solid fa-arrows-rotate"></i> Refresh from Blockchain
+                        </button>
+                    </div>
+                </div>
+
+                <div id="entriesListContainer" class="entries-list">
+                    <div class="empty-state">
+                        <i class="fa-solid fa-feather empty-icon"></i>
+                        <p>No mood logs found for this account. Record your first check-in above!</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: THERAPIST CONSENT MANAGEMENT -->
+        <section id="tab-consent" class="tab-pane">
+            <div class="pane-grid">
+                <!-- Authorization Form -->
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-user-shield"></i> Manage Therapist Access</h2>
+                        <span class="badge badge-teal">Smart Contract Consent</span>
+                    </div>
+                    <p class="description-text">
+                        Grant or revoke access to your encrypted timeline for licensed therapists or counselors.
+                        Only authorized addresses can call the <code>getPatientEntries()</code> smart contract function.
+                    </p>
+
+                    <form id="authorizeTherapistForm" onsubmit="handleAuthorizeTherapist(event)">
+                        <div class="form-group">
+                            <label for="therapistAddressInput"><strong>Therapist Ethereum Wallet Address:</strong></label>
+                            <input type="text" id="therapistAddressInput" class="form-control mono" placeholder="0x70997970C51812dc3A010C7d01b50e0d17dc79C8" required>
+                            <small class="helper-text">Example local test therapist: <code>0x70997970C51812dc3A010C7d01b50e0d17dc79C8</code></small>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-user-plus"></i> Authorize Therapist on Blockchain
+                        </button>
+                    </form>
+
+                    <hr class="divider">
+
+                    <h3>Currently Authorized Therapists</h3>
+                    <div id="authorizedTherapistsList" class="therapist-list">
+                        <p class="empty-text">No therapists currently authorized. Your logs are completely private.</p>
+                    </div>
+                </div>
+
+                <!-- Explanation / Security Architecture -->
+                <div class="sidebar-column">
+                    <div class="card card-info">
+                        <h3><i class="fa-solid fa-lock"></i> How Zero-Trust Consent Works</h3>
+                        <p>
+                            Traditional electronic health records (EHR) store data in centralized vendor silos.
+                            Hospital administrators, third-party cloud contractors, or breaches can expose your records.
+                        </p>
+                        <div class="step-card">
+                            <div class="step-num">1</div>
+                            <div class="step-body">
+                                <strong>Smart Contract Guard:</strong>
+                                Access is verified on-chain via:
+                                <code>require(msg.sender == patient || isTherapistAuthorized[patient][msg.sender])</code>
+                            </div>
+                        </div>
+                        <div class="step-card">
+                            <div class="step-num">2</div>
+                            <div class="step-body">
+                                <strong>Instant Revocation:</strong>
+                                You can terminate access with a single transaction whenever therapy ends.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: THERAPIST CLINICAL PORTAL -->
+        <section id="tab-therapist" class="tab-pane">
+            <div class="card card-primary">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-stethoscope"></i> Clinical Review Dashboard</h2>
+                    <span class="badge badge-purple">Licensed Clinician View</span>
+                </div>
+                <p class="description-text">
+                    Mental health professionals can query a patient's on-chain records.
+                    The smart contract will reject queries from unauthorized therapists.
+                </p>
+
+                <!-- Patient Lookup Form -->
+                <div class="lookup-box">
+                    <div class="form-group flex-1">
+                        <label for="lookupPatientAddress"><strong>Patient Wallet Address:</strong></label>
+                        <input type="text" id="lookupPatientAddress" class="form-control mono" placeholder="0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266">
+                    </div>
+                    <button class="btn btn-primary" onclick="lookupPatientRecords()">
+                        <i class="fa-solid fa-magnifying-glass"></i> Query Patient Records
+                    </button>
+                </div>
+
+                <div id="therapistStatusNotice" class="therapist-notice hidden"></div>
+
+                <!-- Patient Records Display Area -->
+                <div id="patientReviewArea" class="hidden">
+                    <div class="card-header flex-between">
+                        <h3>Patient Clinical Timeline</h3>
+                        <span id="patientReviewCountBadge" class="badge badge-teal">0 Entries</span>
+                    </div>
+                    
+                    <div class="chart-wrapper">
+                        <canvas id="therapistPatientChart" height="100"></canvas>
+                    </div>
+
+                    <div id="patientEntriesList" class="entries-list"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: CALM ZONE & BREATHING EXERCISE -->
+        <section id="tab-calm" class="tab-pane">
+            <div class="calm-grid">
+                <!-- 4-7-8 Breathing Circle -->
+                <div class="card calm-card">
+                    <div class="card-header text-center">
+                        <h2><i class="fa-solid fa-spa"></i> 4-7-8 Parasympathetic Breathing</h2>
+                        <p class="subtitle">A clinically proven breathing rhythm to reduce acute anxiety and panic.</p>
+                    </div>
+
+                    <div class="breathing-container">
+                        <div class="breathing-circle" id="breathingCircle">
+                            <span class="breathing-text" id="breathingInstruction">Inhale</span>
+                            <span class="breathing-timer" id="breathingTimer">4</span>
+                        </div>
+                    </div>
+
+                    <div class="breathing-controls">
+                        <button id="startBreathingBtn" class="btn btn-primary" onclick="toggleBreathingExercise()">
+                            <i class="fa-solid fa-play"></i> Start Guided Breathing
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Emergency Helplines -->
+                <div class="card helpline-card">
+                    <div class="card-header">
+                        <h2><i class="fa-solid fa-phone-volume"></i> 24/7 Crisis Helplines</h2>
+                        <span class="badge badge-red">Free & Confidential</span>
+                    </div>
+
+                    <div class="helpline-items">
+                        <div class="helpline-item">
+                            <div class="helpline-icon"><i class="fa-solid fa-phone"></i></div>
+                            <div>
+                                <strong>988 Suicide & Crisis Lifeline</strong>
+                                <p>Call or text <strong>988</strong> (USA & Canada) - 24 hours a day, 7 days a week.</p>
+                            </div>
+                        </div>
+
+                        <div class="helpline-item">
+                            <div class="helpline-icon"><i class="fa-solid fa-comment-sms"></i></div>
+                            <div>
+                                <strong>Crisis Text Line</strong>
+                                <p>Text <strong>HOME</strong> to <strong>741741</strong> to connect with a crisis counselor.</p>
+                            </div>
+                        </div>
+
+                        <div class="helpline-item">
+                            <div class="helpline-icon"><i class="fa-solid fa-globe"></i></div>
+                            <div>
+                                <strong>International Resources (Befrienders Worldwide)</strong>
+                                <p>Visit <a href="https://www.befrienders.org" target="_blank" rel="noopener">befrienders.org</a> for support in 32+ countries.</p>
+                            </div>
+                        </div>
+
+                        <div class="helpline-item">
+                            <div class="helpline-icon"><i class="fa-solid fa-shield-heart"></i></div>
+                            <div>
+                                <strong>The Trevor Project (LGBTQ Youth)</strong>
+                                <p>Call 1-866-488-7386 or text START to 678-678.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="footer-container">
+            <div>
+                <strong>MindChain</strong> &copy; 2026 - Decentralized Healthcare Technology.
+                <span class="badge badge-outline">Solidity 0.8.20</span>
+            </div>
+            <div class="footer-note">
+                <i class="fa-solid fa-heart text-red"></i> Prioritizing patient mental health sovereignty, privacy, and clinical trust.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Application Script -->
+    <script src="app.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,30 @@
+{
+  "name": "mindchain",
+  "version": "1.0.0",
+  "description": "Decentralized, privacy-first mental health and mood tracker on Ethereum",
+  "type": "module",
+  "scripts": {
+    "compile": "node scripts/compile.js",
+    "deploy": "node scripts/deploy.js",
+    "node": "npx hardhat node",
+    "test": "node test/test-contract.js",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "blockchain",
+    "mental-health",
+    "solidity",
+    "privacy",
+    "ethereum",
+    "smart-contracts"
+  ],
+  "author": "MindChain Team",
+  "license": "MIT",
+  "dependencies": {
+    "ethers": "^6.17.0",
+    "solc": "^0.8.20"
+  },
+  "devDependencies": {
+    "hardhat": "^3.21.1"
+  }
+}
